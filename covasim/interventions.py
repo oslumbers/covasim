@@ -971,7 +971,6 @@ class test_prob(Intervention):
         if self.subtarget is not None:
             subtarget_inds, subtarget_vals = get_subtargets(self.subtarget, sim)
             test_probs[subtarget_inds] = subtarget_vals # People being explicitly subtargeted
-        print(test_probs)
         test_probs[diag_inds] = 0.0 # People who are diagnosed don't test
         test_inds = cvu.true(cvu.binomial_arr(test_probs)) # Finally, calculate who actually tests
 

@@ -1078,7 +1078,11 @@ class contact_tracing(Intervention):
 
         # If there is a tracing capacity constraint, limit the number of agents that can be traced
         if self.capacity is not None:
-            capacity = int(self.capacity / sim.rescale_vec[sim.t])  # Convert capacity into a number of agents
+            if isinstance(self.capacity, float):
+                capacity = max(10, int(round(self.capacity * len(inds)) / sim.rescale_vec[sim.t]))
+            else:
+                capacity = int(self.capacity / sim.rescale_vec[sim.t])  # Convert capacity into a number of agents
+            
             if len(inds) > capacity:
                 inds = np.random.choice(inds, capacity, replace=False)
 

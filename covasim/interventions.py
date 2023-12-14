@@ -1727,6 +1727,7 @@ class vaccinate_num(BaseVaccination):
 
         # Work out how many people to vaccinate today
         num_people = process_doses(self.num_doses, sim)
+        print(len(self._scheduled_doses[sim.t]))
         if num_people == 0:
             self._scheduled_doses[sim.t + 1].update(self._scheduled_doses[sim.t])  # Defer any extras
             return np.array([])

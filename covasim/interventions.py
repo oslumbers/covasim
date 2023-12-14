@@ -1700,13 +1700,13 @@ class vaccinate_num(BaseVaccination):
         cv.Sim(interventions=pfizer, use_waning=True).run().plot()
     '''
 
-    def __init__(self, vaccine, num_doses, capacity=1.0, booster=False, subtarget=None, sequence=None, **kwargs):
+    def __init__(self, vaccine, num_doses, willingness=1.0, booster=False, subtarget=None, sequence=None, **kwargs):
         super().__init__(vaccine,**kwargs) # Initialize the Intervention object
-        self.sequence   = sequence
-        self.num_doses  = num_doses
-        self.booster    = booster
-        self.subtarget  = subtarget
-        self.num_capacity   = capacity
+        self.sequence    = sequence
+        self.num_doses   = num_doses
+        self.booster     = booster
+        self.subtarget   = subtarget
+        self.willingness = willingness
         self._scheduled_doses = sc.ddict(set)  # Track scheduled second doses, where applicable
         return
 
@@ -1727,13 +1727,34 @@ class vaccinate_num(BaseVaccination):
     def select_people(self, sim):
 
         # Work out how many people to vaccinate today
-        num_people = process_doses(self.num_doses, sim)
+
+        #First check if the willingness threshold has been reached
+        total_vaccinated = np.sum(sim.people.vaccinated)
+        total_willingness = round(sim.people['pars']['pop_size'] * self.willingness)
+        print(f"capacity: {total_willingness}")
+        print(f'num vaccinated: {total_vaccinated}')
         print(f'len scheduled: {len(self._scheduled_doses[sim.t])}')
-        if num_people == 0 and len(self._scheduled_doses[sim.t]) == 0:
+        if total_vaccinated >= round(total_willingness) and len(self._scheduled_doses[sim.t]) == 0:
+            return np.array([])
+        
+        if (total_vaccinated + self.num_doses(sim)) >= total_willingness and len(self._scheduled_doses[sim.t]) == 0:
+            num_doses = total_willingness - total_vaccinated
+            print(f'num doses1: {num_doses}')
+        elif (total_vaccinated + self.num_doses(sim)) >= total_willingness and len(self._scheduled_doses[sim.t]) != 0:
+            total_need = total_willingness - total_vaccinated + len(self._scheduled_doses[sim.t])
+            num_doses = min(total_need, self.num_doses(sim))
+            print(f'num doses2: {num_doses}')
+        else:
+            num_doses = self.num_doses
+            print(f'num doses3: {num_doses}')
+        
+        num_people = process_doses(num_doses, sim)
+        print(f'num people: {num_people}')
+        
+        if num_people == 0:
             self._scheduled_doses[sim.t + 1].update(self._scheduled_doses[sim.t])  # Defer any extras
             return np.array([])
         num_agents = sc.randround(num_people / sim['pop_scale'])
-        print(num_agents)
 
         # First, see how many scheduled second doses we are going to deliver
         if self._scheduled_doses[sim.t]:

@@ -1700,12 +1700,13 @@ class vaccinate_num(BaseVaccination):
         cv.Sim(interventions=pfizer, use_waning=True).run().plot()
     '''
 
-    def __init__(self, vaccine, num_doses, booster=False, subtarget=None, sequence=None, **kwargs):
+    def __init__(self, vaccine, num_doses, capacity=1.0, booster=False, subtarget=None, sequence=None, **kwargs):
         super().__init__(vaccine,**kwargs) # Initialize the Intervention object
         self.sequence   = sequence
         self.num_doses  = num_doses
         self.booster    = booster
         self.subtarget  = subtarget
+        self.num_capacity   = capacity
         self._scheduled_doses = sc.ddict(set)  # Track scheduled second doses, where applicable
         return
 
@@ -1727,11 +1728,12 @@ class vaccinate_num(BaseVaccination):
 
         # Work out how many people to vaccinate today
         num_people = process_doses(self.num_doses, sim)
-        print(len(self._scheduled_doses[sim.t]))
-        if num_people == 0:
+        print(f'len scheduled: {len(self._scheduled_doses[sim.t])}')
+        if num_people == 0 and len(self._scheduled_doses[sim.t]) == 0:
             self._scheduled_doses[sim.t + 1].update(self._scheduled_doses[sim.t])  # Defer any extras
             return np.array([])
         num_agents = sc.randround(num_people / sim['pop_scale'])
+        print(num_agents)
 
         # First, see how many scheduled second doses we are going to deliver
         if self._scheduled_doses[sim.t]:

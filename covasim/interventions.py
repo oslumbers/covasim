@@ -1731,25 +1731,18 @@ class vaccinate_num(BaseVaccination):
         #First check if the willingness threshold has been reached
         total_vaccinated = np.sum(sim.people.vaccinated)
         total_willingness = round(sim.people['pars']['pop_size'] * self.willingness)
-        print(f"capacity: {total_willingness}")
-        print(f'num vaccinated: {total_vaccinated}')
-        print(f'len scheduled: {len(self._scheduled_doses[sim.t])}')
         if total_vaccinated >= round(total_willingness) and len(self._scheduled_doses[sim.t]) == 0:
             return np.array([])
         
         if (total_vaccinated + self.num_doses(sim)) >= total_willingness and len(self._scheduled_doses[sim.t]) == 0:
             num_doses = total_willingness - total_vaccinated
-            print(f'num doses1: {num_doses}')
         elif (total_vaccinated + self.num_doses(sim)) >= total_willingness and len(self._scheduled_doses[sim.t]) != 0:
             total_need = total_willingness - total_vaccinated + len(self._scheduled_doses[sim.t])
             num_doses = min(total_need, self.num_doses(sim))
-            print(f'num doses2: {num_doses}')
         else:
             num_doses = self.num_doses
-            print(f'num doses3: {num_doses}')
         
         num_people = process_doses(num_doses, sim)
-        print(f'num people: {num_people}')
         
         if num_people == 0:
             self._scheduled_doses[sim.t + 1].update(self._scheduled_doses[sim.t])  # Defer any extras
@@ -1790,7 +1783,7 @@ class vaccinate_num(BaseVaccination):
         # vaccine would have had subsequent doses scheduled and therefore should not be selected here
         first_dose_eligible = self.sequence[cvu.binomial_arr(vacc_probs[self.sequence])]
 
-        if len(first_dose_eligible) == 0:
+        if len(first_dose_eligible) == 0 or (total_vaccinated >= total_willingness):
             return scheduled  # Just return anyone that is scheduled
 
         elif len(first_dose_eligible) > num_agents:

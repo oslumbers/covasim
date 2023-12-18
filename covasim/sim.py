@@ -3,6 +3,7 @@ Defines the Sim class, Covasim's core class.
 '''
 
 #%% Imports
+import copy
 import numpy as np
 import pandas as pd
 import sciris as sc
@@ -60,7 +61,9 @@ class Sim(cvb.BaseSim):
         self.people        = None     # Initialize these here so methods that check their length can see they're empty
         self.t             = None     # The current time in the simulation (during execution); outside of sim.step(), its value corresponds to next timestep to be computed
         self.results       = {}       # For storing results
+        self.results_mdp   = {}       # For storing results for MDP
         self.summary       = None     # For storing a summary of the results
+        self.summary_mdp   = None
         self.initialized   = False    # Whether or not initialization is complete
         self.complete      = False    # Whether a simulation has completed running
         self.results_ready = False    # Whether or not results are ready
@@ -759,6 +762,28 @@ class Sim(cvb.BaseSim):
             self.finalize(verbose=verbose, restore_pars=restore_pars)
             sc.printv(f'Run finished after {elapsed:0.2f} s.\n', 1, verbose)
         return self
+    
+    def update_results_mdp(self):
+        self.results_mdp = copy.deepcopy(self.results)
+
+        # Scale the results
+        for reskey in self.result_keys():
+            if self.results_mdp[reskey].scale:
+                self.results_mdp[reskey].values *= self.rescale_vec
+        for reskey in self.result_keys('variant'):
+            if self.results_mdp['variant'][reskey].scale:
+                self.results_mdp['variant'][reskey].values = np.einsum('ij,j->ij', self.results_mdp['variant'][reskey].values, self.rescale_vec)
+
+        # Calculate cumulative results
+        for key in cvd.result_flows.keys():
+            self.results_mdp[f'cum_{key}'][:] = np.cumsum(self.results_mdp[f'new_{key}'][:], axis=0)
+        for key in cvd.result_flows_by_variant.keys():
+            for variant in range(self['n_variants']):
+                self.results_mdp['variant'][f'cum_{key}'][variant, :] = np.cumsum(self.results_mdp['variant'][f'new_{key}'][variant, :], axis=0)
+        for res in [self.results_mdp['cum_infections'], self.results_mdp['variant']['cum_infections_by_variant']]: # Include initially infected people
+            res.values += self['pop_infected']*self.rescale_vec[0]
+        
+        self.results_mdp = sc.objdict(self.results_mdp) # Convert results to a odicts/objdict to allow e.g. sim.results.diagnoses
 
 
     def finalize(self, verbose=None, restore_pars=True):
@@ -1051,7 +1076,6 @@ class Sim(cvb.BaseSim):
         '''
         if t is None:
             t = self.day(self.t)
-
         # Compute the summary
         if require_run and not self.results_ready:
             errormsg = 'Simulation not yet run'
@@ -1060,10 +1084,41 @@ class Sim(cvb.BaseSim):
         summary = sc.objdict()
         for key in self.result_keys():
             summary[key] = self.results[key][t]
-
         # Update the stored state
         if update:
             self.summary = summary
+
+        # Optionally return
+        if output:
+            return summary
+        else:
+            return
+        
+    def compute_summary_mdp(self, full=None, t=None, update=True, output=False, require_run=False):
+        '''
+        Compute the summary dict and string for the sim. Used internally; see
+        sim.summarize() for the user version.
+
+        Args:
+            full (bool): whether or not to print all results (by default, only cumulative)
+            t (int/str): day or date to compute summary for (by default, the last point)
+            update (bool): whether to update the stored sim.summary
+            output (bool): whether to return the summary
+            require_run (bool): whether to raise an exception if simulations have not been run yet
+        '''
+        if t is None:
+            t = self.day(self.t)
+        # Compute the summary
+        if require_run and not self.results_ready:
+            errormsg = 'Simulation not yet run'
+            raise RuntimeError(errormsg)
+
+        summary = sc.objdict()
+        for key in self.result_keys():
+            summary[key] = self.results_mdp[key][t]
+        # Update the stored state
+        if update:
+            self.summary_mdp = summary
 
         # Optionally return
         if output:
@@ -1093,7 +1148,7 @@ class Sim(cvb.BaseSim):
         '''
         # Compute the summary
         summary = self.compute_summary(full=full, t=t, update=False, output=True)
-
+        print(summary)
         # Construct the output string
         if sep is None: sep = cvo.sep # Default separator
         labelstr = f' "{self.label}"' if self.label else ''

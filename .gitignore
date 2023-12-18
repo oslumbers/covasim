@@ -142,3 +142,6 @@ dmypy.json
 
 # Node.js and NPM
 node_modules
+
+# PDF images
+*.pdf

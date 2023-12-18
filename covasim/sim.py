@@ -422,17 +422,14 @@ class Sim(cvb.BaseSim):
         return self
     
     def add_intervention(self, intervention):
-        print('Adding intervention')
         self['interventions'].append(intervention)
-        print(self['interventions'])
-        self.init_interventions()
+        self.init_interventions(in_run=True)
 
 
-    def init_interventions(self):
+    def init_interventions(self, in_run=False):
         ''' Initialize and validate the interventions '''
-
         # Initialization
-        if self._orig_pars and 'interventions' in self._orig_pars:
+        if self._orig_pars and 'interventions' in self._orig_pars and not in_run:
             self['interventions'] = self._orig_pars.pop('interventions') # Restore
 
         for i,intervention in enumerate(self['interventions']):
@@ -440,14 +437,16 @@ class Sim(cvb.BaseSim):
                 intervention.initialize(self)
 
         # Validation
+        
         trace_ind = np.nan # Index of the tracing intervention(s)
         test_ind = np.nan # Index of the tracing intervention(s)
+        print(self['interventions'])
         for i,intervention in enumerate(self['interventions']):
             if isinstance(intervention, (cvi.contact_tracing)):
                 trace_ind = np.fmin(trace_ind, i) # Find the earliest-scheduled tracing intervention
             elif isinstance(intervention, (cvi.test_num, cvi.test_prob)):
                 test_ind = np.fmax(test_ind, i) # Find the latest-scheduled testing intervention
-
+        print(f'trace_ind: {trace_ind}, test_ind: {test_ind}')
         if not np.isnan(trace_ind): # pragma: no cover
             warnmsg = ''
             if np.isnan(test_ind):

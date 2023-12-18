@@ -420,6 +420,12 @@ class Sim(cvb.BaseSim):
             self.init_infections(verbose=verbose)
 
         return self
+    
+    def add_intervention(self, intervention):
+        print('Adding intervention')
+        self['interventions'].append(intervention)
+        print(self['interventions'])
+        self.init_interventions()
 
 
     def init_interventions(self):

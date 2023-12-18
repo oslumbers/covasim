@@ -1082,11 +1082,14 @@ class Sim(cvb.BaseSim):
             raise RuntimeError(errormsg)
 
         summary = sc.objdict()
+        summary_mdp = {}
         for key in self.result_keys():
             summary[key] = self.results[key][t]
+            summary_mdp[key] = self.results[key][t]
         # Update the stored state
         if update:
             self.summary = summary
+            self.summary_mdp = summary_mdp
 
         # Optionally return
         if output:

@@ -1113,7 +1113,7 @@ class Sim(cvb.BaseSim):
             errormsg = 'Simulation not yet run'
             raise RuntimeError(errormsg)
 
-        summary = sc.objdict()
+        summary = {}
         for key in self.result_keys():
             summary[key] = self.results_mdp[key][t]
         # Update the stored state

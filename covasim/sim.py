@@ -1148,7 +1148,6 @@ class Sim(cvb.BaseSim):
         '''
         # Compute the summary
         summary = self.compute_summary(full=full, t=t, update=False, output=True)
-        print(summary)
         # Construct the output string
         if sep is None: sep = cvo.sep # Default separator
         labelstr = f' "{self.label}"' if self.label else ''

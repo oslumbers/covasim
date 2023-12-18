@@ -442,13 +442,11 @@ class Sim(cvb.BaseSim):
         
         trace_ind = np.nan # Index of the tracing intervention(s)
         test_ind = np.nan # Index of the tracing intervention(s)
-        print(self['interventions'])
         for i,intervention in enumerate(self['interventions']):
             if isinstance(intervention, (cvi.contact_tracing)):
                 trace_ind = np.fmin(trace_ind, i) # Find the earliest-scheduled tracing intervention
             elif isinstance(intervention, (cvi.test_num, cvi.test_prob)):
                 test_ind = np.fmax(test_ind, i) # Find the latest-scheduled testing intervention
-        print(f'trace_ind: {trace_ind}, test_ind: {test_ind}')
         if not np.isnan(trace_ind): # pragma: no cover
             warnmsg = ''
             if np.isnan(test_ind):

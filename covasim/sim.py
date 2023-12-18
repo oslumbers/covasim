@@ -421,8 +421,10 @@ class Sim(cvb.BaseSim):
 
         return self
     
-    def add_intervention(self, intervention):
-        self['interventions'].append(intervention)
+    def add_new_interventions(self, interventions):
+        self['interventions'] = []
+        for intervention in interventions:
+            self['interventions'].append(intervention)
         self.init_interventions(in_run=True)
 
 

@@ -1700,15 +1700,20 @@ class vaccinate_num(BaseVaccination):
         cv.Sim(interventions=pfizer, use_waning=True).run().plot()
     '''
 
-    def __init__(self, vaccine, num_doses, willingness=1.0, booster=False, subtarget=None, sequence=None, **kwargs):
+    def __init__(self, vaccine, num_doses, willingness=1.0, booster=False, subtarget=None, sequence=None, start_day=None, end_day=None, **kwargs):
         super().__init__(vaccine,**kwargs) # Initialize the Intervention object
         self.sequence    = sequence
         self.num_doses   = num_doses
         self.booster     = booster
         self.subtarget   = subtarget
         self.willingness = willingness
+        self.start_day   = start_day
+        self.end_day     = end_day
         self._scheduled_doses = sc.ddict(set)  # Track scheduled second doses, where applicable
         return
+    
+    def get_daily_vacc(self, sim):
+        return self.num_doses * sim.people['pars']['pop_size'] if sim.t >= self.start_day and sim.t <= self.end_day else 0
 
 
     def initialize(self, sim):
@@ -1719,6 +1724,7 @@ class vaccinate_num(BaseVaccination):
         if isinstance(self.num_doses, dict): # Convert any dates to simulation days
             self.num_doses = {sim.day(k):v for k, v in self.num_doses.items()}
         self.sequence = process_sequence(self.sequence, sim)
+        print(f'seq: {self.sequence}')
         check_doses(self.p['doses'], self.p['interval'])
 
         return
@@ -1731,23 +1737,30 @@ class vaccinate_num(BaseVaccination):
         #First check if the willingness threshold has been reached
         total_vaccinated = np.sum(sim.people.vaccinated)
         total_willingness = round(sim.people['pars']['pop_size'] * self.willingness)
+        #print(f'total willingness: {total_willingness}')
+        #print(f'sim people: {sim.people["pars"]["pop_size"]}')
+        #print(f'total vaccinated: {total_vaccinated}')
         if total_vaccinated >= round(total_willingness) and len(self._scheduled_doses[sim.t]) == 0:
             return np.array([])
-        
-        if (total_vaccinated + self.num_doses(sim)) >= total_willingness and len(self._scheduled_doses[sim.t]) == 0:
-            num_doses = total_willingness - total_vaccinated
-        elif (total_vaccinated + self.num_doses(sim)) >= total_willingness and len(self._scheduled_doses[sim.t]) != 0:
-            total_need = total_willingness - total_vaccinated + len(self._scheduled_doses[sim.t])
-            num_doses = min(total_need, self.num_doses(sim))
+        if self.start_day:
+            doses_output = self.get_daily_vacc(sim)
         else:
-            num_doses = self.num_doses
-        
+            doses_output = self.num_doses(sim)
+        if (total_vaccinated + doses_output) >= total_willingness and len(self._scheduled_doses[sim.t]) == 0:
+                num_doses = total_willingness - total_vaccinated
+        elif (total_vaccinated + doses_output) >= total_willingness and len(self._scheduled_doses[sim.t]) != 0:
+            total_need = total_willingness - total_vaccinated + len(self._scheduled_doses[sim.t])
+            num_doses = min(total_need, doses_output)
+        else:
+            num_doses = doses_output
+
         num_people = process_doses(num_doses, sim)
         
         if num_people == 0:
             self._scheduled_doses[sim.t + 1].update(self._scheduled_doses[sim.t])  # Defer any extras
             return np.array([])
-        num_agents = sc.randround(num_people / sim['pop_scale'])
+        
+        num_agents = sc.randround(num_people)
 
         # First, see how many scheduled second doses we are going to deliver
         if self._scheduled_doses[sim.t]:
@@ -1806,7 +1819,6 @@ class vaccinate_num(BaseVaccination):
             self._scheduled_doses[sim.t+self.p.interval].update(first_dose_inds)
 
         vacc_inds = np.concatenate([scheduled, first_dose_inds])
-
         return vacc_inds
 
 

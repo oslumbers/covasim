@@ -1724,7 +1724,6 @@ class vaccinate_num(BaseVaccination):
         if isinstance(self.num_doses, dict): # Convert any dates to simulation days
             self.num_doses = {sim.day(k):v for k, v in self.num_doses.items()}
         self.sequence = process_sequence(self.sequence, sim)
-        print(f'seq: {self.sequence}')
         check_doses(self.p['doses'], self.p['interval'])
 
         return
@@ -1737,9 +1736,6 @@ class vaccinate_num(BaseVaccination):
         #First check if the willingness threshold has been reached
         total_vaccinated = np.sum(sim.people.vaccinated)
         total_willingness = round(sim.people['pars']['pop_size'] * self.willingness)
-        #print(f'total willingness: {total_willingness}')
-        #print(f'sim people: {sim.people["pars"]["pop_size"]}')
-        #print(f'total vaccinated: {total_vaccinated}')
         if total_vaccinated >= round(total_willingness) and len(self._scheduled_doses[sim.t]) == 0:
             return np.array([])
         if self.start_day:

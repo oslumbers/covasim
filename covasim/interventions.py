@@ -1401,7 +1401,8 @@ class BaseVaccination(Intervention):
                 errormsg = 'Provided mismatching efficacies and doses.'
                 raise ValueError(errormsg)
 
-        self.doses = np.zeros(sim['pop_size'], dtype=cvd.default_int) # Number of doses given per person
+
+        self.doses = np.zeros(int(sim['pop_size']), dtype=cvd.default_int) # Number of doses given per person
         self.vaccination_dates = [[] for _ in range(sim.n)] # Store the dates when people are vaccinated
 
         sim['vaccine_pars'][self.label] = self.p # Store the parameters

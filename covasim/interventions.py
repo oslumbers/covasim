@@ -1739,7 +1739,7 @@ class vaccinate_num(BaseVaccination):
         total_willingness = round(sim.people['pars']['pop_size'] * self.willingness)
         if total_vaccinated >= round(total_willingness) and len(self._scheduled_doses[sim.t]) == 0:
             return np.array([])
-        if self.start_day:
+        if self.start_day is not None:
             doses_output = self.get_daily_vacc(sim)
         else:
             doses_output = self.num_doses(sim)

@@ -48,7 +48,7 @@ class Sim(cvb.BaseSim):
     '''
 
     def __init__(self, pars=None, datafile=None, label=None, simfile=None,
-                 popfile=None, people=None, version=None, **kwargs):
+                 popfile=None, people=None, version=None, seed=0, **kwargs):
 
         # Set attributes
         self.label         = label    # The label/name of the simulation
@@ -70,6 +70,7 @@ class Sim(cvb.BaseSim):
         self._default_ver  = version  # Default version of parameters used
         self._legacy_trans = None     # Whether to use the legacy transmission calculation method (slower; for reproducing earlier results)
         self._orig_pars    = None     # Store original parameters to optionally restore at the end of the simulation
+        self.seed          = seed
 
         # Make default parameters (using values from parameters.py)
         default_pars = cvpar.make_pars(version=version) # Start with default pars
@@ -113,7 +114,7 @@ class Sim(cvb.BaseSim):
         '''
         self.t = 0  # The current time index
         self.validate_pars() # Ensure parameters have valid values
-        self.set_seed() # Reset the random seed before the population is created
+        self.set_seed(seed=self.seed) # Reset the random seed before the population is created
         self.init_variants() # Initialize the variants
         self.init_immunity() # initialize information about immunity (if use_waning=True)
         self.init_results() # After initializing the variant, create the results structure
@@ -121,7 +122,7 @@ class Sim(cvb.BaseSim):
         self.init_interventions()  # Initialize the interventions...
         self.init_analyzers()  # ...and the analyzers...
         self.validate_layer_pars() # Once the population is initialized, validate the layer parameters again
-        self.set_seed() # Reset the random seed again so the random number stream is consistent
+        self.set_seed(seed=self.seed) # Reset the random seed again so the random number stream is consistent
         self.initialized   = True
         self.complete      = False
         self.results_ready = False
@@ -721,7 +722,7 @@ class Sim(cvb.BaseSim):
         if reset_seed:
             # Reset the RNG. If the simulation is newly created, then the RNG will be reset by sim.initialize() so the use case
             # for resetting the seed here is if the simulation has been partially run, and changing the seed is required
-            self.set_seed()
+            self.set_seed(seed=self.seed)
 
         # Check for AlreadyRun errors
         errormsg = None

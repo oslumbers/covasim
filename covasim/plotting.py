@@ -114,7 +114,7 @@ def handle_show_return(do_show=None, returnfig=None, fig=None, figs=None):
             return fig
 
 
-def handle_to_plot(kind, to_plot, n_cols, sim, check_ready=True):
+def handle_to_plot(kind, to_plot, n_cols, sim, check_ready=False):
     ''' Handle which quantities to plot '''
 
     # Allow default kind to be overwritten by to_plot -- used by msim.plot()

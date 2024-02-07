@@ -791,6 +791,23 @@ class Sim(cvb.BaseSim):
         
         self.results_mdp = sc.objdict(self.results_mdp) # Convert results to a odicts/objdict to allow e.g. sim.results.diagnoses
 
+    def update_results(self):
+        # Scale the results
+        for reskey in self.result_keys():
+            if self.results[reskey].scale: # Scale the result dynamically
+                self.results[reskey].values *= self.rescale_vec
+        for reskey in self.result_keys('variant'):
+            if self.results['variant'][reskey].scale: # Scale the result dynamically
+                self.results['variant'][reskey].values = np.einsum('ij,j->ij', self.results['variant'][reskey].values, self.rescale_vec)
+
+        # Calculate cumulative results
+        for key in cvd.result_flows.keys():
+            self.results[f'cum_{key}'][:] = np.cumsum(self.results[f'new_{key}'][:], axis=0)
+        for key in cvd.result_flows_by_variant.keys():
+            for variant in range(self['n_variants']):
+                self.results['variant'][f'cum_{key}'][variant, :] = np.cumsum(self.results['variant'][f'new_{key}'][variant, :], axis=0)
+        for res in [self.results['cum_infections'], self.results['variant']['cum_infections_by_variant']]: # Include initially infected people
+            res.values += self['pop_infected']*self.rescale_vec[0]
 
     def finalize(self, verbose=None, restore_pars=True):
         ''' Compute final results '''

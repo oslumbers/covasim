@@ -81,6 +81,8 @@ class Sim(cvb.BaseSim):
         self.update_pars(pars, **kwargs)   # Update the parameters, if provided
         self.load_data(datafile) # Load the data, if provided
 
+        self.init_beta_layer = copy.deepcopy(self['beta_layer']) # Store the initial beta_layer for later comparison
+
         return
 
 
@@ -423,6 +425,9 @@ class Sim(cvb.BaseSim):
         return self
     
     def add_new_interventions(self, interventions):
+        # reset the beta layer
+        self['beta_layer'] = copy.deepcopy(self.init_beta_layer)
+
         self['interventions'] = []
         for intervention in interventions:
             self['interventions'].append(intervention)
@@ -603,6 +608,7 @@ class Sim(cvb.BaseSim):
 
         # Apply interventions
         for i,intervention in enumerate(self['interventions']):
+            #print(f'Applying intervention {i}, {intervention}')
             intervention(self) # If it's a function, call it directly
 
         people.update_states_post() # Check for state changes after interventions
@@ -627,6 +633,9 @@ class Sim(cvb.BaseSim):
         prel_trans = people.rel_trans
         prel_sus   = people.rel_sus
 
+        #print(f'self t: {t}')
+        #print(self['beta_layer'])
+        #print('moving on')
         # Iterate through n_variants to calculate infections
         for variant in range(nv):
 
@@ -944,6 +953,7 @@ class Sim(cvb.BaseSim):
 
 
     def compute_r_eff(self, method='daily', smoothing=2, window=7):
+        #print('hellllooooooo')
         '''
         Effective reproduction number based on number of people each person infected.
 
@@ -1134,6 +1144,9 @@ class Sim(cvb.BaseSim):
         '''
         if t is None:
             t = self.day(self.t)
+
+        #print(self.results_mdp['cum_infections'][-1])
+        #print(self.results_mdp['cum_infections'][t])
         # Compute the summary
         if require_run and not self.results_ready:
             errormsg = 'Simulation not yet run'
